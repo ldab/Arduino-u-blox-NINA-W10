@@ -8,18 +8,18 @@ u-blox NINA-W10 Arduino example + SHT31 temperature and humidity + Bluetooth BLE
 
 [![GitHub last commit](https://img.shields.io/github/last-commit/ldab/Arduino-u-blox-NINA-W10.svg?style=social)](https://github.com/ldab/Arduino-u-blox-NINA-W10)
 
-[![EVK-NINA-W10](https://www.u-blox.com/sites/default/files/styles/product_full/public/products/NINA-W102_kombi.png)](https://www.u-blox.com/en/product/nina-W10-series)
+[![EVK-NINA-W10](https://www.u-blox.com/sites/default/files/styles/product_full/public/products/EVK-NINA-W1-2CI.png)](https://www.u-blox.com/en/product/nina-W10-series)
 
 ## How to build PlatformIO based project
 
 1. [Install PlatformIO Core](http://docs.platformio.org/page/core.html)
-2. Download [development platform with examples](https://github.com/platformio/platform-nordicnrf52/archive/develop.zip)
+2. Download [development the repository with examples](https://github.com/ldab/Arduino-u-blox-NINA-w10)
 3. Extract ZIP archive
 4. Run these commands:
 
 ```
 # Change directory to example
-> cd platform-nordicnrf52/examples/Arduino-u-blox-NINA-W10
+> cd Arduino-u-blox-NINA-W10
 
 # Build project
 > platformio run
@@ -47,14 +47,13 @@ Timer functionas are implemented intead of `delay()` and the PINs have been re-m
 
 * You can create a custom partitions table (CSV) following [ESP32 Partition Tables](https://docs.espressif.com/projects/esp-idf/en/latest/api-guides/partition-tables.html) documentation.
 
-* Partitions available at [GitHub](https://github.com/espressif/arduino-esp32/tree/master/tools/partitions)
+* Partitions examples are available at [GitHub arduino-esp32](https://github.com/espressif/arduino-esp32/tree/master/tools/partitions)
 
-This examples uses `minimal.csv`
+* This examples uses `min_spiffs.csv`
 
 ## Erase Flash
 
-`pio run -t erase` all data replaced with 0xFF bytes.
-
+`pio run -t erase` - > all data will be replaced with 0xFF bytes.
 
 ## Bluetooth iOS and Android app 
 
@@ -67,3 +66,5 @@ You can download the sample Bluetooth low energy app - BLE App straight from u-b
 Github Shields and Badges created with [Shields.io](https://github.com/badges/shields/)
 
 Adafruit [SHT31 Library](https://www.adafruit.com/product/2857)
+
+ESP32 BLE Arduino [Library](https://github.com/nkolban/ESP32_BLE_Arduino?utm_source=platformio&utm_medium=piohome)

@@ -33,7 +33,8 @@ install:
     # Libraries from PlatformIO Library Registry:
     # https://github.com/adafruit/Adafruit_SHT31
     # https://github.com/sstaub/Ticker
-    - platformio lib -g install 479 1586
+    # https://github.com/nkolban/esp32-snippets
+    - platformio lib -g install 479 1586 1841
 
 script:
     - pio run
