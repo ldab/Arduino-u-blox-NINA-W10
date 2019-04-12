@@ -41,7 +41,21 @@ u-blox NINA-W10 Arduino example + SHT31 temperature and humidity + Bluetooth BLE
 
 This example tries to implement some key functions and key PIN atributes in order to get you started with using Arduino and the Multiradio board u-blox NINA-W10.
 
-Timer functionas are implemented intead of `delay()` and the PINs have been re-mapped on the `#define` section
+## BLE Server, Client, Central, Peripheral ????? 😕
+
+BLE roles are a bit confusing, at least to me, [Neil Kolban](https://github.com/nkolban) the same person behind the `ESP32 BLE Lib` has made some material available on his [YouTube Channel](https://www.youtube.com/watch?v=UgI7WRr5cgE)
+
+Basicaly:
+* Peripheral -> Advertises
+* Central    -> Scans for Peripherals
+
+Therefore if you're working on a end device, an activity tracker for example, it's likely to be set as an Peripheral.
+
+## Using with s-center
+
+* In order to test this example, NINA-W10 (Central/Client) connects to NINA-B1 (Peripheral/Server) via s-center and write the SHT31 temperature to the `FFE1` characteristics and humidity to `2A6F`.
+
+![](./extras/s-center.png)
 
 ## Partition Table and Flash size
 

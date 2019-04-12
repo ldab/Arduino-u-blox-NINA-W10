@@ -41,14 +41,16 @@ SCL       = 13;
 // The remote service we wish to connect to.
 static BLEUUID serviceUUID("2456e1b9-26e2-8f83-e744-f34f01e9d701");
 // The characteristic of the remote service we are interested in.
-static BLEUUID charUUID("FFE0");
+static BLEUUID tcharUUID("FFE1");
+static BLEUUID hcharUUID("2A6F");
 // This device name
 const char charNAME[] = "NINA-W10";
 
 static boolean doConnect = false;
 static boolean connected = false;
 static boolean doScan    = false;
-static BLERemoteCharacteristic* pRemoteCharacteristic;
+static BLERemoteCharacteristic* tCharacteristic;
+static BLERemoteCharacteristic* hCharacteristic;
 static BLEAdvertisedDevice*     myDevice;
 
 // Create functions prior to calling them as .cpp files are differnt from Arduino .ino
@@ -136,24 +138,38 @@ bool connectToServer() {
 
 
     // Obtain a reference to the characteristic in the service of the remote BLE server.
-    pRemoteCharacteristic = pRemoteService->getCharacteristic(charUUID);
-    if (pRemoteCharacteristic == nullptr) {
+    tCharacteristic = pRemoteService->getCharacteristic(tcharUUID);
+    if (tCharacteristic == nullptr) {
       Serial.print("Failed to find our characteristic UUID: ");
-      Serial.println(charUUID.toString().c_str());
+      Serial.println(tcharUUID.toString().c_str());
+      pClient->disconnect();
+      return false;
+    }
+    Serial.println(" - Found our characteristic");
+
+    // Obtain a reference to the characteristic in the service of the remote BLE server.
+    hCharacteristic = pRemoteService->getCharacteristic(hcharUUID);
+    if (hCharacteristic == nullptr) {
+      Serial.print("Failed to find our characteristic UUID: ");
+      Serial.println(hcharUUID.toString().c_str());
       pClient->disconnect();
       return false;
     }
     Serial.println(" - Found our characteristic");
 
     // Read the value of the characteristic.
-    if(pRemoteCharacteristic->canRead()) {
-      std::string value = pRemoteCharacteristic->readValue();
-      Serial.print("The characteristic value was: ");
-      Serial.println(value.c_str());
-    }
+    // !!!!!!!!!! This was crashing and reading from the Server at this stage wasn't relevant, took it off.
+    //if(tCharacteristic->canRead()) {
+      //std::string value = tCharacteristic->readValue();
+      //Serial.print("The characteristic value was: ");
+      //Serial.println(value.c_str());
+    //}
 
-    if(pRemoteCharacteristic->canNotify())
-      pRemoteCharacteristic->registerForNotify(notifyCallback);
+    if(tCharacteristic->canNotify())
+      tCharacteristic->registerForNotify(notifyCallback);
+
+    if(hCharacteristic->canNotify())
+      hCharacteristic->registerForNotify(notifyCallback);
 
     connected = true;
 }
@@ -172,9 +188,6 @@ void setup()
 
   Serial.begin(115200);
 
-  readIt.attach( 2, readSensor );
-  blinkIt.attach( 1, blinky );
-
   if( !sht31.begin(0x44) ){
     Serial.println("Failed to find sensor, please check wiring and address");
   }
@@ -183,6 +196,7 @@ void setup()
 
   // Retrieve a Scanner and set the callback.
   BLEScan* pBLEScan = BLEDevice::getScan();
+  // Callback function to be called when a new Peripheral is found
   pBLEScan->setAdvertisedDeviceCallbacks(new MyAdvertisedDeviceCallbacks());
   // Set the Scan interval in ms
   pBLEScan->setInterval(1349);
@@ -192,6 +206,10 @@ void setup()
   pBLEScan->setActiveScan(true);
   // Start scan for [in] seconds
   pBLEScan->start(5, false);
+
+  // Start Timers, read sensor and blink Blue LED
+  //readIt.attach( 2, readSensor ); // we will now read the sensor only when sending data
+  blinkIt.attach( 1, blinky );
 
 }
 
@@ -211,7 +229,10 @@ void loop()
 
     doConnect = false;
   }
+
+  // Should probably put this on a Timer but would work for this example.
   delay(2000);
+
   // If connected to a peer BLE Server, update the characteristic
   if (connected)
   {
@@ -221,12 +242,10 @@ void loop()
 
     String temp = String(t, 2);
     String hum  = String(h, 2);
-
-    Serial.println("temp = " + temp);
-    Serial.println("leng = " + String( temp.length() ));
     
     // Set the characteristic's value to be the array of bytes that is actually a string.
-    pRemoteCharacteristic->writeValue(temp.c_str(), temp.length());
+    tCharacteristic->writeValue(temp.c_str(), temp.length());
+    hCharacteristic->writeValue(hum.c_str(),  hum.length());
   }
   else if(doScan)
   {
