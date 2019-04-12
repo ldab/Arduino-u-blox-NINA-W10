@@ -17,18 +17,33 @@ on the #define section
 
 #include "Arduino.h"
 #include "Wire.h"
-#include "BLEDevice.h"
-#include "Ticker.h"
-#include "Adafruit_SHT31.h"
+#include <BLEDevice.h>
+#include <BLEUtils.h>
+#include <BLEServer.h>
+#include <Ticker.h>
+#include <Adafruit_SHT31.h>
 
-#define RGB_R         13  // P0.13 - GPIO1
-#define RGB_G         25  // P0.25 - GPIO7 BOOT_I - *THIS PIN IS SHARED WITH SWITCH 1*
-#define RGB_B         32  // P1.00 - GPIO8 SWO_I
+/******************     NINA-W10 PIN Definition      ************************************
+ * .platformio\packages\framework-arduinoespressif32\variants\nina_w10
+LED_GREEN = 33;
+LED_RED   = 23;
+LED_BLUE  = 21;
+SW1       = 33;
+SW2       = 27;
+
+TX        = 1;
+RX        = 3;
+
+SDA       = 12;
+SCL       = 13;
+***************************************************************************************/
 
 // The remote service we wish to connect to.
-static BLEUUID serviceUUID("4fafc201-1fb5-459e-8fcc-c5c9c331914b");
+static BLEUUID serviceUUID("2456e1b9-26e2-8f83-e744-f34f01e9d701");
 // The characteristic of the remote service we are interested in.
-static BLEUUID charUUID("beb5483e-36e1-4688-b7f5-ea07361b26a8");
+static BLEUUID charUUID("FFE0");
+// This device name
+const char charNAME[] = "NINA-W10";
 
 static boolean doConnect = false;
 static boolean connected = false;
@@ -38,17 +53,17 @@ static BLEAdvertisedDevice*     myDevice;
 
 // Create functions prior to calling them as .cpp files are differnt from Arduino .ino
 void setupBLE   ( void );
+void readSensor ( void );
 void blinky     ( void );
 void colorLED   ( void );
-void readSensor ( void );
 bool connectToServer( void );
 
 // Initialize the Temperature and Humidity Sensor SHT31
 Adafruit_SHT31 sht31 = Adafruit_SHT31();
 
 // Create timers using Ticker library in oder to avoid delay()
-Ticker blinkLED ( blinky, 600 );
-Ticker readIT   ( readSensor, 5000 );
+Ticker blinkIt;
+Ticker readIt;
 
 // Declare Global variables
 float t = NAN;
@@ -145,34 +160,43 @@ bool connectToServer() {
 
 void setup()
 {
+  pinMode( LED_RED  , OUTPUT );
+  pinMode( LED_GREEN, OUTPUT );
+  pinMode( LED_BLUE , OUTPUT );
+  digitalWrite( LED_RED  , HIGH );
+  digitalWrite( LED_GREEN, HIGH );
+  digitalWrite( LED_BLUE , HIGH );
+
+  pinMode( SW2, INPUT_PULLUP );
+  attachInterrupt( SW2, colorLED, FALLING );
+
   Serial.begin(115200);
 
-  readIT.start();
+  readIt.attach( 2, readSensor );
+  blinkIt.attach( 1, blinky );
 
   if( !sht31.begin(0x44) ){
     Serial.println("Failed to find sensor, please check wiring and address");
   }
   
-  BLEDevice::init("");
+  BLEDevice::init(charNAME);
 
-  // Retrieve a Scanner and set the callback we want to use to be informed when we
-  // have detected a new device.  Specify that we want active scanning and start the
-  // scan to run for 5 seconds.
+  // Retrieve a Scanner and set the callback.
   BLEScan* pBLEScan = BLEDevice::getScan();
   pBLEScan->setAdvertisedDeviceCallbacks(new MyAdvertisedDeviceCallbacks());
+  // Set the Scan interval in ms
   pBLEScan->setInterval(1349);
+  // Scan duration in ms
   pBLEScan->setWindow(449);
+  // Active scan means a scan response is expected
   pBLEScan->setActiveScan(true);
+  // Start scan for [in] seconds
   pBLEScan->start(5, false);
 
 }
 
 void loop()
 {
-  // Keep feeding timers
-  blinkLED.update();
-  readIT.update();
-
   // If "doConnect" is true BLE Server has been found, Now we connect to it.
   if (doConnect == true) 
   {
@@ -187,16 +211,22 @@ void loop()
 
     doConnect = false;
   }
-
-    // If we are connected to a peer BLE Server, update the characteristic each time we are reached
-  // with the current time since boot.
+  delay(2000);
+  // If connected to a peer BLE Server, update the characteristic
   if (connected)
   {
-    String newValue = "Time since boot: " + String(millis()/1000);
-    Serial.println("Setting new characteristic value to \"" + newValue + "\"");
+    Serial.println("Sending data");
+
+    readSensor();
+
+    String temp = String(t, 2);
+    String hum  = String(h, 2);
+
+    Serial.println("temp = " + temp);
+    Serial.println("leng = " + String( temp.length() ));
     
     // Set the characteristic's value to be the array of bytes that is actually a string.
-    pRemoteCharacteristic->writeValue(newValue.c_str(), newValue.length());
+    pRemoteCharacteristic->writeValue(temp.c_str(), temp.length());
   }
   else if(doScan)
   {
@@ -225,12 +255,33 @@ void readSensor( void )
   
 }
 
+// Toggle LED_Blue
 void blinky( void )
 {
-  // Toggle LED_DS1
-  //digitalWrite(LED_DS1, LED);
+  bool toggle = digitalRead( LED_BLUE );
 
-  // Toggle LED_RTS
-  //digitalWrite(LED_RTS, !LED);
+  digitalWrite( LED_BLUE, !toggle );
+}
+
+// Random function just to show Switch 2
+void colorLED( void )
+{
+  uint8_t ran = random(0,3);
+  
+  switch (ran)
+  {
+  case 1:
+    digitalWrite( LED_RED, LOW );
+    break;
+  
+  case 2:
+    digitalWrite( LED_GREEN, LOW );
+    break;
+
+  default:
+    digitalWrite( LED_GREEN, HIGH );
+    digitalWrite( LED_RED, HIGH );
+    break;
+  }
 
 }

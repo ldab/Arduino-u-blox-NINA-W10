@@ -49,7 +49,10 @@ Timer functionas are implemented intead of `delay()` and the PINs have been re-m
 
 * Partitions examples are available at [GitHub arduino-esp32](https://github.com/espressif/arduino-esp32/tree/master/tools/partitions)
 
-* This examples uses `min_spiffs.csv`
+* `minimal.csv` is the default defined on [nina_w10.json](https://github.com/platformio/platform-espressif32/blob/master/boards/nina_w10.json) however I changed it in order to free some space up used by spiffs found on `partitions_custom.csv` [here](./partitions_custom.csv)
+  * No OTA;
+  * No SPIFFS;
+  * No EEPROM;
 
 ## Erase Flash
 
