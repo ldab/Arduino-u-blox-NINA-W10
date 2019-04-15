@@ -13,6 +13,8 @@ to get you started with using Arduino and the espresif ESP32 board u-blox NINA-W
 Timer functionas are implemented intead of delay() and the PINs have been re-mapped
 on the #define section
 
+**********   CLIENT example, connects to a Peripheral.   **************
+
 ******************************************************************************/
 
 #include "Arduino.h"

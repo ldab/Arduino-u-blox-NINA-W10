@@ -46,10 +46,18 @@ This example tries to implement some key functions and key PIN atributes in orde
 BLE roles are a bit confusing, at least to me, [Neil Kolban](https://github.com/nkolban) the same person behind the `ESP32 BLE Lib` has made some material available on his [YouTube Channel](https://www.youtube.com/watch?v=UgI7WRr5cgE)
 
 Basicaly:
-* Peripheral -> Advertises
-* Central    -> Scans for Peripherals
+* Peripheral  -> Advertises
+* Central     -> Scans for Peripherals
+* GATT Server -> Device which has the database and provide resources to the Client. PS. Server does not send data, unless Client requests.
+* GATT Client -> Access remote Server resources.
 
-Therefore if you're working on a end device, an activity tracker for example, it's likely to be set as an Peripheral.
+Generally, Peripheral = Server. Therefore if you're working on a end device, an activity tracker for example, it's likely to be set as a Peripheral.
+
+## Examples
+
+* Two examples are provided:
+  * [Client](./Client/), connecting to a Peripheral GATT Server;
+  * [Server](./Server/), connecting to a Central GATT Client;
 
 ## Using with s-center
 
