@@ -39,8 +39,8 @@ u-blox NINA-W10 Arduino example + SHT31 temperature and humidity + Bluetooth BLE
 
 ## TODO
 
-[ ] - Assing defined PIN for connection;
-[ ] - Stop advertising;
+- [ ] Assing defined PIN for connection;
+- [ ] Stop advertising;
 
 ## Why?
 
@@ -89,7 +89,7 @@ Generally, Peripheral = Server. Therefore if you're working on a end device, an 
 
 * The [nRF Connect for Mobile](https://www.nordicsemi.com/Software-and-Tools/Development-Tools/nRF-Connect-for-mobile) App from Nordic Semiconductor can alse be used in order to communicate and learn more about BLE and its details:
 
-![nRF Connect](./extras/nrf%20connect.jpg)
+![nRF Connect](./extras/nRF%20Connect.jpg)
 
 * You can download the sample Bluetooth low energy app - BLE App straight from u-blox wesite: [https://www.u-blox.com/en/product/bluetooth-ios-and-android-app](https://www.u-blox.com/en/product/bluetooth-ios-and-android-app)
 
