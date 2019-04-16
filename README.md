@@ -37,6 +37,11 @@ u-blox NINA-W10 Arduino example + SHT31 temperature and humidity + Bluetooth BLE
 > platformio run --target clean
 ```
 
+## TODO
+
+[ ] - Assing defined PIN for connection;
+[ ] - Stop advertising;
+
 ## Why?
 
 This example tries to implement some key functions and key PIN atributes in order to get you started with using Arduino and the Multiradio board u-blox NINA-W10.
@@ -82,9 +87,13 @@ Generally, Peripheral = Server. Therefore if you're working on a end device, an 
 
 ## Bluetooth iOS and Android app 
 
-You can download the sample Bluetooth low energy app - BLE App straight from u-blox wesite: [https://www.u-blox.com/en/product/bluetooth-ios-and-android-app](https://www.u-blox.com/en/product/bluetooth-ios-and-android-app)
+* The [nRF Connect for Mobile](https://www.nordicsemi.com/Software-and-Tools/Development-Tools/nRF-Connect-for-mobile) App from Nordic Semiconductor can alse be used in order to communicate and learn more about BLE and its details:
 
-![App example](https://raw.githubusercontent.com/ldab/Arduino-u-blox-NINA-W10/master/extras/Screenshot_20190328-130832_u-blox%20BLE.jpg)
+![nRF Connect](./extras/nrf%20connect.jpg)
+
+* You can download the sample Bluetooth low energy app - BLE App straight from u-blox wesite: [https://www.u-blox.com/en/product/bluetooth-ios-and-android-app](https://www.u-blox.com/en/product/bluetooth-ios-and-android-app)
+
+![App example](./extras/u-blox%20BLE.jpg)
 
 ## Credits
 

@@ -18,7 +18,6 @@ on the #define section
 ******************************************************************************/
 
 #include "Arduino.h"
-#include "Wire.h"
 #include <BLEDevice.h>
 #include <BLEUtils.h>
 #include <BLEServer.h>
@@ -48,12 +47,19 @@ static BLEUUID hcharUUID("2A6F");
 // This device name
 const char charNAME[] = "NINA-W10";
 
+// Create BLE Server and Advertise instances
+BLEServer           *pServer;
+BLEAdvertising      *pAdvertising;
+BLECharacteristic   *tCharacteristic;
+BLECharacteristic   *hCharacteristic;
+
 uint32_t passkey = 0420;
 
 // Create functions prior to calling them as .cpp files are differnt from Arduino .ino
 void readSensor ( void );
 void blinky     ( void );
-void colorLED   ( void );
+void startAdv   ( void );
+void stopAdv    ( void );
 
 // Initialize the Temperature and Humidity Sensor SHT31
 Adafruit_SHT31 sht31 = Adafruit_SHT31();
@@ -61,25 +67,52 @@ Adafruit_SHT31 sht31 = Adafruit_SHT31();
 // Create timers using Ticker library in oder to avoid delay()
 Ticker blinkIt;
 Ticker readIt;
+Ticker stopAdvertise;
 
 // Declare Global variables
-float t = NAN;
-float h = NAN;
+// need to truncate variables to uint16 as defined per BLE
+uint16_t t16 = 0;
+uint16_t h16 = 0;
 
 bool connected = false;
 
-class MyServerCallback : public BLEServerCallbacks {
-  void onConnect(BLEClient* pclient) 
+class MyServerCallbacks : public BLEServerCallbacks {
+  void onConnect(BLEServer* pServer) 
   {
-
+    connected = true;
+    digitalWrite( LED_RED, HIGH);
+    readIt.attach( 5, readSensor );
+    Serial.println("onConnect");
   }
 
-  void onDisconnect(BLEClient* pclient) 
+  void onDisconnect(BLEServer* pServer) 
   {
     connected = false;
+    digitalWrite( LED_GREEN, HIGH);
+    readIt.detach();
     Serial.println("onDisconnect");
   }
 };
+
+void startAdv()
+{
+  Serial.println("Start to Advertise");
+  detachInterrupt( SW2 );
+
+  pAdvertising = BLEDevice::getAdvertising();
+  pAdvertising->start();
+
+  // stop advertising in [in] seconds
+  stopAdvertise.once( 20, stopAdv );
+}
+
+void stopAdv()
+{
+  Serial.println("Stop Advertising\n");
+  attachInterrupt( SW2, startAdv, FALLING );
+
+  pAdvertising->stop();
+}
 
 void setup()
 {
@@ -90,42 +123,41 @@ void setup()
   digitalWrite( LED_GREEN, HIGH );
   digitalWrite( LED_BLUE , HIGH );
 
+  // We will use the button, Switch 2 to trigger the advertising
   pinMode( SW2, INPUT_PULLUP );
-  attachInterrupt( SW2, colorLED, FALLING );
+  attachInterrupt( SW2, startAdv, FALLING );
 
   Serial.begin(115200);
 
-  if( !sht31.begin(0x44) ){
+  if( !sht31.begin(0x44) )
     Serial.println("Failed to find sensor, please check wiring and address");
-  }
-  
+    
+  // Create a BLE device named charNAME previously defined
   BLEDevice::init(charNAME);
 
   // Create a GATT Server
-  BLEServer *pServer = BLEDevice::createServer();
-  // Create the service
+  pServer = BLEDevice::createServer();
+  pServer->setCallbacks(new MyServerCallbacks());
+  // Create the BLE service
   BLEService *pService = pServer->createService(serviceUUID);
   // Create the characteristic
-  BLECharacteristic* tCharacteristic = pService->createCharacteristic(tcharUUID, BLECharacteristic::PROPERTY_READ);
-  BLECharacteristic* hCharacteristic = pService->createCharacteristic(hcharUUID, BLECharacteristic::PROPERTY_READ);
+  tCharacteristic = pService->createCharacteristic(tcharUUID, BLECharacteristic::PROPERTY_READ);
+  hCharacteristic = pService->createCharacteristic(hcharUUID, BLECharacteristic::PROPERTY_READ);
   tCharacteristic->setAccessPermissions(ESP_GATT_PERM_READ_ENCRYPTED | ESP_GATT_PERM_WRITE_ENCRYPTED);
   hCharacteristic->setAccessPermissions(ESP_GATT_PERM_READ_ENCRYPTED | ESP_GATT_PERM_WRITE_ENCRYPTED);
   // Set the characteristic value
   readSensor();
-  tCharacteristic->setValue( t );
-  hCharacteristic->setValue( h );
+  tCharacteristic->setValue( t16 );
+  hCharacteristic->setValue( h16 );
   // Start the service
   pService->start();
 
-  BLEAdvertising *pAdvertising = pServer->getAdvertising();
-  pAdvertising->start();
-
   // Security, using defined PIN number -> https://github.com/nkolban/esp32-snippets/issues/793#issuecomment-458947313
-    esp_ble_auth_req_t auth_req = ESP_LE_AUTH_REQ_SC_MITM_BOND;     //bonding with peer device after authentication
-    esp_ble_io_cap_t iocap = ESP_IO_CAP_NONE;           //set the IO capability to No output No input
-    uint8_t key_size = 16;      //the key size should be 7~16 bytes
+    esp_ble_auth_req_t auth_req = ESP_LE_AUTH_REQ_SC_MITM_BOND;     // bonding with peer device after authentication
+    esp_ble_io_cap_t iocap = ESP_IO_CAP_NONE;                       // set the IO capability to No output No input
+    uint8_t key_size = 16;                                          // the key size should be 7~16 bytes
     uint8_t init_key = ESP_BLE_ENC_KEY_MASK | ESP_BLE_ID_KEY_MASK;
-    uint8_t rsp_key = ESP_BLE_ENC_KEY_MASK | ESP_BLE_ID_KEY_MASK;
+    uint8_t rsp_key  = ESP_BLE_ENC_KEY_MASK | ESP_BLE_ID_KEY_MASK;
     //set static passkey
     uint8_t auth_option = ESP_BLE_ONLY_ACCEPT_SPECIFIED_AUTH_DISABLE;
     uint8_t oob_support = ESP_BLE_OOB_DISABLE;
@@ -143,22 +175,23 @@ void setup()
     esp_ble_gap_set_security_param(ESP_BLE_SM_SET_RSP_KEY, &rsp_key, sizeof(uint8_t));
   
   // Start Timers, read sensor and blink Blue LED
-  readIt.attach( 5, readSensor );
+  // readIt.attach( 5, readSensor ); // start the timer when connected;
   blinkIt.attach( 1, blinky );
 }
 
 void loop()
 {
 
-  // Should probably put this on a Timer but would work for this example.
-  delay(2000);
-
 }
 
 void readSensor( void )
 {
-  t = sht31.readTemperature();
-  h = sht31.readHumidity();
+  float t = sht31.readTemperature();
+  float h = sht31.readHumidity();
+
+  // need to truncate variables to uint16 as defined per BLE
+  t16 = t * 100;
+  h16 = h * 100;
 
   if (! isnan(t)) {  // check if 'is not a number'
     Serial.print("Temp ºC = "); Serial.println(t);
@@ -172,6 +205,9 @@ void readSensor( void )
     Serial.println("Failed to read humidity");
   }
   Serial.println();
+
+  tCharacteristic->setValue( t16 );
+  hCharacteristic->setValue( h16 );
   
 }
 
@@ -186,27 +222,4 @@ void blinky( void )
     led = LED_RED;
 
   digitalWrite( led, !digitalRead( led ));
-}
-
-// Random function just to show Switch 2
-void colorLED( void )
-{
-  uint8_t ran = random(0,3);
-  
-  switch (ran)
-  {
-  case 1:
-    digitalWrite( LED_RED, LOW );
-    break;
-  
-  case 2:
-    digitalWrite( LED_GREEN, LOW );
-    break;
-
-  default:
-    digitalWrite( LED_GREEN, HIGH );
-    digitalWrite( LED_RED, HIGH );
-    break;
-  }
-
 }
